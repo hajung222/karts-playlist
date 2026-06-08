@@ -1,0 +1,1757 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Now Playing at K-Arts</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+KR:wght@500;600;700;800&display=swap");
+
+      :root {
+        --red: #ef003f;
+        --black: #050506;
+        --panel: rgba(14, 14, 18, 0.78);
+        --line: rgba(255, 255, 255, 0.15);
+        --text: #f8f5f1;
+        --muted: rgba(255, 255, 255, 0.62);
+        --vh: 1vh;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #111;
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          "Noto Sans KR", "Pretendard", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .app {
+        position: relative;
+        width: 100vw;
+        height: calc(var(--vh) * 100);
+        overflow: hidden;
+        background: var(--black);
+      }
+
+      .page {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(18px);
+        transition:
+          opacity 900ms cubic-bezier(0.16, 1, 0.3, 1),
+          transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .page.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .scroll {
+        height: 100%;
+        overflow-y: auto;
+        padding: max(20px, env(safe-area-inset-top)) 18px max(26px, env(safe-area-inset-bottom));
+        scrollbar-width: none;
+      }
+
+      .scroll::-webkit-scrollbar,
+      .recent-track::-webkit-scrollbar {
+        display: none;
+      }
+
+      .landing {
+        overflow: hidden;
+      }
+
+      .campus-bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(180deg, rgba(4, 4, 12, 0.18) 0%, rgba(4, 4, 12, 0.16) 42%, rgba(3, 3, 5, 0.54) 76%, #050506 100%),
+          url("karts-playlist-assets/campus-bg.png");
+        background-size: cover;
+        background-position: center bottom;
+        transform: scale(1.01);
+      }
+
+      .hero-copy {
+        position: absolute;
+        z-index: 3;
+        top: max(74px, calc(env(safe-area-inset-top) + 56px));
+        left: 24px;
+        right: 24px;
+        text-align: center;
+        text-shadow: 0 4px 28px rgba(0, 0, 0, 0.36);
+        animation: titleDrop 2100ms 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .hero-copy h1 {
+        margin: 0;
+        line-height: 0;
+      }
+
+      .hero-title-image {
+        display: block;
+        width: min(82vw, 350px);
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .hero-copy p {
+        margin: 11px 0 0;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: clamp(12px, 3.25vw, 14px);
+        line-height: 1.45;
+        font-weight: 500;
+      }
+
+      @keyframes titleDrop {
+        from {
+          opacity: 0;
+          transform: translateY(-34px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .cd-wrap {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        top: 49%;
+        width: min(72vw, 330px);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        filter: drop-shadow(0 26px 38px rgba(0, 0, 0, 0.42));
+        animation: cdEnter 2200ms 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .cd-wrap img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        animation: spin 15s linear infinite;
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+
+      .cd-wrap::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        border-radius: 50%;
+        background:
+          linear-gradient(115deg, transparent 0 32%, rgba(255, 255, 255, 0.18) 43%, transparent 55%),
+          radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.16), transparent 19%);
+        mix-blend-mode: screen;
+        pointer-events: none;
+      }
+
+      @keyframes cdEnter {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) translateY(34px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0) scale(1);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .landing-cta {
+        position: absolute;
+        z-index: 4;
+        left: 50%;
+        bottom: max(46px, env(safe-area-inset-bottom));
+        width: min(66vw, 270px);
+        min-height: 52px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 17px;
+        font-weight: 900;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 35%),
+          linear-gradient(105deg, #cf0035 0%, #ef003f 58%, #ff285f 100%);
+        box-shadow:
+          0 18px 48px rgba(239, 0, 63, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        transform: translateX(-50%);
+        animation: ctaRise 2200ms 1450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        transition:
+          transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 240ms ease;
+      }
+
+      .landing-cta:active,
+      .pressable:active {
+        transform: translateX(-50%) scale(0.975);
+        filter: brightness(1.06);
+      }
+
+      @keyframes ctaRise {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(46px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      .app-page {
+        background:
+          radial-gradient(circle at 30% 40%, rgba(239, 0, 63, 0.12), transparent 36%),
+          radial-gradient(circle at 50% -8%, rgba(255, 255, 255, 0.08), transparent 34%),
+          linear-gradient(180deg, #0b0b12 0%, #050506 68%);
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 40px;
+      }
+
+      .k-logo {
+        position: relative;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 950;
+      }
+
+      .k-logo::after {
+        position: absolute;
+        top: 1px;
+        right: -14px;
+        width: 11px;
+        height: 11px;
+        content: "";
+        background: var(--red);
+      }
+
+      .status-pill {
+        min-height: 30px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 12px;
+        font-weight: 900;
+        background: rgba(255, 255, 255, 0.055);
+      }
+
+      .page-title {
+        margin: 24px 0 16px;
+        color: #fff;
+        font-size: clamp(25px, 7.8vw, 32px);
+        line-height: 1;
+        font-weight: 950;
+        text-align: center;
+      }
+
+      .form-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        animation: contentUp 720ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes contentUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .field label,
+      .section-label {
+        display: block;
+        margin: 0 0 8px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .field input {
+        width: 100%;
+        min-height: 48px;
+        border: 1.4px solid rgba(255, 255, 255, 0.17);
+        border-radius: 15px;
+        padding: 0 14px;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 750;
+        outline: none;
+        background: rgba(255, 255, 255, 0.06);
+        transition:
+          border-color 220ms ease,
+          background 220ms ease,
+          transform 220ms ease;
+      }
+
+      .field input:focus {
+        border-color: rgba(239, 0, 63, 0.82);
+        background: rgba(255, 255, 255, 0.09);
+        transform: translateY(-1px);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chips.compact {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .chip {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1.2px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        font-weight: 850;
+        background: rgba(255, 255, 255, 0.052);
+        transition:
+          transform 190ms ease,
+          border-color 190ms ease,
+          background 190ms ease;
+      }
+
+      .chips.compact .chip {
+        min-height: 32px;
+        padding: 0 2px;
+        font-size: 11px;
+        letter-spacing: 0;
+      }
+
+      .other-place-field {
+        display: none;
+        margin-top: 9px;
+      }
+
+      .other-place-field.show {
+        display: block;
+      }
+
+      .chip.selected {
+        border-color: var(--red);
+        color: #fff;
+        background: rgba(239, 0, 63, 0.16);
+      }
+
+      .album-only-preview {
+        display: grid;
+        place-items: center;
+        margin: 0 auto 18px;
+        width: min(42vw, 160px);
+        aspect-ratio: 1;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 62% 28%, rgba(255, 255, 255, 0.28), transparent 14%),
+          linear-gradient(135deg, rgba(255,255,255,0.07), rgba(239,0,63,0.18));
+      }
+
+      .album-only-preview img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .album-preview {
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: 12px;
+        align-items: center;
+        min-height: 102px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .album-cover {
+        width: 76px;
+        height: 76px;
+        overflow: hidden;
+        border-radius: 15px;
+        background:
+          radial-gradient(circle at 65% 30%, rgba(255, 255, 255, 0.66), transparent 15%),
+          linear-gradient(135deg, #28272c, #ef003f);
+      }
+
+      .album-cover img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .album-preview strong {
+        display: block;
+        color: #fff;
+        font-size: 16px;
+        line-height: 1.18;
+        font-weight: 900;
+      }
+
+      .album-preview span {
+        display: block;
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      .submit-button {
+        width: 100%;
+        min-height: 52px;
+        margin-top: 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 900;
+        background: linear-gradient(105deg, #cf0035, #ef003f 60%, #ff285f);
+        box-shadow: 0 18px 42px rgba(239, 0, 63, 0.26);
+        transition:
+          transform 220ms ease,
+          filter 220ms ease;
+      }
+
+      .submit-button:active,
+      .tab-button:active,
+      .heart-button:active {
+        transform: scale(0.975);
+      }
+
+      .submit-button[disabled] {
+        opacity: 0.7;
+      }
+
+      .complete-copy {
+        margin: 28px 0 16px;
+      }
+
+      .complete-copy small {
+        display: block;
+        margin-bottom: 9px;
+        color: var(--red);
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .complete-copy h1 {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(22px, 6.3vw, 28px);
+        line-height: 1.16;
+        font-weight: 950;
+      }
+
+      .browse-button {
+        width: 100%;
+        min-height: 50px;
+        margin: 26px 0 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 900;
+        background: linear-gradient(105deg, #cf0035, #ef003f 60%, #ff285f);
+        box-shadow: 0 16px 36px rgba(239, 0, 63, 0.22);
+        transition: transform 220ms ease, filter 220ms ease;
+      }
+
+      .browse-button:active {
+        transform: scale(0.975);
+        filter: brightness(1.06);
+      }
+
+      .archive-rank {
+        margin-top: 8px;
+      }
+
+      .shared-card {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 13px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.065);
+      }
+
+      .shared-card > div:not(.album-cover):not(.tag-row) {
+        min-width: 0;
+      }
+
+      .shared-card h2 {
+        margin: 0;
+        overflow: hidden;
+        color: #fff;
+        font-size: 18px;
+        line-height: 1.12;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .shared-card p {
+        margin: 5px 0 0;
+        overflow: hidden;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        font-weight: 760;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .shared-card > .tag-row {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-top: 0;
+      }
+
+      .shared-card > .tag-row .heart-button {
+        flex: 0 0 auto;
+        margin-top: 0;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 27px;
+        max-width: 58%;
+        padding: 0 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 12px;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .tabs {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 20px 0 18px;
+      }
+
+      .tab-button {
+        min-height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 14px;
+        line-height: 1.2;
+        font-weight: 900;
+        background: rgba(255, 255, 255, 0.065);
+        transition:
+          transform 200ms ease,
+          background 200ms ease,
+          border-color 200ms ease;
+      }
+
+      .tab-button.active {
+        border-color: var(--red);
+        color: #fff;
+        background: var(--red);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin: 22px 0 13px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 950;
+      }
+
+      .hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .hint::before {
+        width: 38px;
+        height: 1px;
+        content: "";
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .recent-shell {
+        margin: 0 -20px;
+        overflow: hidden;
+      }
+
+      .recent-track {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding: 8px 20px 18px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+
+      .recent-card {
+        position: relative;
+        flex: 0 0 52vw;
+        max-width: 214px;
+        aspect-ratio: 0.78;
+        overflow: hidden;
+        scroll-snap-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 22px;
+        background: #17171a;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+      }
+
+      .recent-card img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .recent-card::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background: linear-gradient(180deg, transparent 38%, rgba(0, 0, 0, 0.86) 100%);
+      }
+
+      .recent-info {
+        position: absolute;
+        z-index: 2;
+        left: 14px;
+        right: 14px;
+        bottom: 13px;
+      }
+
+      .recent-info strong {
+        display: block;
+        color: #fff;
+        font-size: 18px;
+        line-height: 1.08;
+        font-weight: 950;
+      }
+
+      .recent-info span {
+        display: block;
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.74);
+        font-size: 12px;
+        line-height: 1.25;
+        font-weight: 720;
+      }
+
+      .heart-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 29px;
+        margin-top: 9px;
+        padding: 0 11px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        background: rgba(0, 0, 0, 0.38);
+        transition:
+          transform 170ms ease,
+          background 170ms ease;
+      }
+
+      .heart-button.bump {
+        animation: bump 340ms cubic-bezier(0.2, 1.5, 0.32, 1);
+      }
+
+      .heart-button.liked {
+        border-color: rgba(239, 0, 63, 0.42);
+        color: rgba(255, 255, 255, 0.62);
+        background: rgba(239, 0, 63, 0.1);
+      }
+
+      @keyframes bump {
+        45% {
+          transform: scale(1.18);
+        }
+      }
+
+      .chart-list {
+        padding: 10px 13px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.052);
+      }
+
+      .rank-block {
+        margin-top: 22px;
+      }
+
+      .playlist-hero {
+        margin-top: 6px;
+        text-align: center;
+      }
+
+      .playlist-title-image {
+        display: block;
+        width: min(76vw, 304px);
+        height: auto;
+        margin: 14px auto 12px;
+      }
+
+      .case-button {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border-radius: 18px;
+        background: transparent;
+        filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.38));
+        transition:
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 260ms ease;
+      }
+
+      .case-button:active {
+        transform: scale(0.975);
+        filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.34)) brightness(1.08);
+      }
+
+      .case-button img {
+        display: block;
+        width: min(76vw, 304px);
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .playlist-menu {
+        position: relative;
+        width: min(84vw, 340px);
+        height: calc(min(84vw, 340px) * 0.4);
+        margin: 8px auto 10px;
+        overflow: hidden;
+      }
+
+      .playlist-menu > img {
+        position: absolute;
+        left: 0;
+        top: calc(min(84vw, 340px) * -0.78);
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .playlist-tag {
+        position: absolute;
+        width: 35%;
+        height: 25%;
+        padding: 0;
+        border-radius: 12px;
+        color: transparent;
+        background: transparent;
+        transition:
+          transform 200ms ease,
+          background 200ms ease;
+      }
+
+      .playlist-tag:active {
+        transform: scale(0.97);
+        background: rgba(239, 0, 63, 0.08);
+      }
+
+      .playlist-tag[data-index="0"] {
+        left: 13%;
+        top: 5%;
+      }
+
+      .playlist-tag[data-index="1"] {
+        left: 49%;
+        top: 5%;
+      }
+
+      .playlist-tag[data-index="2"] {
+        left: 13%;
+        top: 38%;
+      }
+
+      .playlist-tag[data-index="3"] {
+        left: 49%;
+        top: 38%;
+      }
+
+      .playlist-tag[data-index="4"] {
+        left: 13%;
+        top: 70%;
+      }
+
+      .playlist-tag[data-index="5"] {
+        left: 49%;
+        top: 70%;
+      }
+
+      .rank-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin: 14px 0 16px;
+      }
+
+      .rank-toggle button {
+        min-height: 48px;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 16px;
+        color: rgba(255,255,255,0.76);
+        font-size: 13px;
+        line-height: 1.18;
+        font-weight: 900;
+        background: rgba(255,255,255,0.055);
+      }
+
+      .rank-toggle button.active {
+        border-color: var(--red);
+        color: #fff;
+        background: rgba(239,0,63,0.22);
+      }
+
+      .playlist-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .playlist-results {
+        margin-top: 12px;
+      }
+
+      .empty-note {
+        padding: 18px 0;
+        color: rgba(255,255,255,0.48);
+        font-size: 13px;
+        font-weight: 750;
+        text-align: center;
+      }
+
+      .chart-row {
+        display: grid;
+        grid-template-columns: 32px 47px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 64px;
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .chart-row:first-child {
+        border-top: 0;
+      }
+
+      .playlist-row {
+        grid-template-columns: 47px 1fr auto;
+      }
+
+      .rank {
+        color: var(--red);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 25px;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .mini-cover {
+        width: 47px;
+        height: 47px;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #1a1a1e;
+      }
+
+      .mini-cover img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .chart-title {
+        min-width: 0;
+      }
+
+      .chart-title h3 {
+        margin: 0;
+        overflow: hidden;
+        color: #fff;
+        font-size: 14px;
+        line-height: 1.16;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chart-title p {
+        margin: 4px 0 0;
+        overflow: hidden;
+        color: rgba(255, 255, 255, 0.54);
+        font-size: 11px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .likes {
+        text-align: right;
+      }
+
+      .likes strong {
+        display: block;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 950;
+      }
+
+      .likes button {
+        min-height: 24px;
+        margin-top: 4px;
+        padding: 0 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        background: rgba(239, 0, 63, 0.2);
+      }
+
+      .toast {
+        position: fixed;
+        z-index: 40;
+        left: 50%;
+        bottom: max(20px, env(safe-area-inset-bottom));
+        min-width: 210px;
+        padding: 11px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 850;
+        text-align: center;
+        background: rgba(12, 12, 15, 0.92);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 20px);
+        transition:
+          opacity 260ms ease,
+          transform 260ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      @media (min-width: 560px) {
+        body {
+          display: grid;
+          place-items: center;
+          overflow: auto;
+          min-height: 100vh;
+        }
+
+        .app {
+          width: min(100vw, 430px);
+          height: min(100vh, 850px);
+          border-radius: 28px;
+          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          transition-duration: 1ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <section class="page landing active" data-page="landing">
+        <div class="campus-bg"></div>
+        <div class="hero-copy">
+          <h1><img class="hero-title-image" src="karts-playlist-assets/title-now-playing.png" alt="Now Playing at K-Arts" /></h1>
+          <p>지금, 한예종 사람들은 무엇을 듣고 있을까요?</p>
+        </div>
+        <div class="cd-wrap" aria-hidden="true">
+          <img src="karts-playlist-assets/cd-clean.png" alt="" />
+        </div>
+        <button class="landing-cta" type="button" data-go="form">♪ 내 음악 남기기</button>
+      </section>
+
+      <section class="page app-page" data-page="form">
+        <div class="scroll">
+          <header class="header">
+            <div class="k-logo">K</div>
+            <button class="status-pill" type="button" data-go="landing">MAIN</button>
+          </header>
+
+          <h1 class="page-title">내 음악 남기기</h1>
+
+          <div class="album-only-preview" id="previewCover"></div>
+
+          <form class="form-stack" id="songForm">
+            <div class="field">
+              <label for="titleInput">곡명</label>
+              <input id="titleInput" autocomplete="off" placeholder="곡명을 입력해주세요" />
+            </div>
+            <div class="field">
+              <label for="artistInput">아티스트명</label>
+              <input id="artistInput" autocomplete="off" placeholder="아티스트명을 입력해주세요" />
+            </div>
+
+            <div>
+              <div class="section-label">소속원 선택</div>
+              <div class="chips compact" data-chip-group="school">
+                <button class="chip" type="button">음악원</button>
+                <button class="chip" type="button">연극원</button>
+                <button class="chip selected" type="button">영상원</button>
+                <button class="chip" type="button">무용원</button>
+                <button class="chip" type="button">미술원</button>
+                <button class="chip" type="button">전통예술원</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="section-label">지금 무엇을 하며 듣고 있나요?</div>
+              <div class="chips" data-chip-group="place">
+                <button class="chip selected" type="button"># 학교 가는 중</button>
+                <button class="chip" type="button"># 집 가는 중</button>
+                <button class="chip" type="button"># 작업하는 중</button>
+                <button class="chip" type="button"># 과제하는 중</button>
+                <button class="chip" type="button"># 촬영하는 중</button>
+                <button class="chip" type="button"># 편집하는 중</button>
+                <button class="chip" type="button"># 밥 먹는 중</button>
+                <button class="chip" type="button"># 쉬는 중</button>
+                <button class="chip" type="button" data-other-place># 기타</button>
+              </div>
+              <div class="field other-place-field" id="otherPlaceField">
+                <input id="otherPlaceInput" autocomplete="off" placeholder="# 직접 입력" />
+              </div>
+            </div>
+
+            <button class="submit-button" type="submit" id="submitButton">등록하기</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="page app-page" data-page="archive">
+        <div class="scroll" id="archiveScroll">
+          <header class="header">
+            <div class="k-logo">K</div>
+            <button class="status-pill" type="button" data-go="landing">MAIN</button>
+          </header>
+
+          <section class="complete-copy">
+            <small>공유 완료</small>
+            <h1>당신의 음악이<br />한예종 플레이리스트에 담겼어요.</h1>
+          </section>
+
+          <section class="shared-card" id="sharedCard"></section>
+
+          <section id="recentSection">
+            <div class="section-head">
+              <h2>최근 올라온 음악</h2>
+              <div class="hint">SWIPE</div>
+            </div>
+            <div class="recent-shell">
+              <div class="recent-track" id="recentTrack"></div>
+            </div>
+          </section>
+
+          <section class="rank-block archive-rank">
+            <div class="section-head">
+              <h2>한예종이 사랑한 음악 순위</h2>
+              <div class="hint">❤️</div>
+            </div>
+            <div class="chart-list" id="activeRankList"></div>
+          </section>
+
+          <button class="browse-button" type="button" data-go="browse">한예종 플리 구경하기</button>
+
+        </div>
+      </section>
+
+      <section class="page app-page" data-page="browse">
+        <div class="scroll" id="browseScroll">
+          <header class="header">
+            <div class="k-logo">K</div>
+            <button class="status-pill" type="button" data-go="archive">BACK</button>
+          </header>
+
+          <section class="playlist-hero">
+            <img class="playlist-title-image" src="karts-playlist-assets/playlist-title-crop.png" alt="한예종 Playlist" />
+            <button class="case-button" type="button" id="allPlaylistButton" aria-label="전체 음악 보기">
+              <img src="karts-playlist-assets/cd-case.png" alt="" />
+            </button>
+          </section>
+
+          <section>
+            <div class="playlist-menu" id="playlistTags"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page app-page" data-page="playlist">
+        <div class="scroll" id="playlistScroll">
+          <header class="header">
+            <div class="k-logo">K</div>
+            <button class="status-pill" type="button" data-go="browse">BACK</button>
+          </header>
+
+          <section class="complete-copy">
+            <small>K-Arts Playlist</small>
+            <h1 id="playlistTitle">#등교 플리</h1>
+          </section>
+
+          <section class="rank-block">
+            <div class="chart-list playlist-results" id="playlistResults"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast">하트가 순위에 반영됐어요</div>
+
+    <script>
+      const STORAGE_KEY = "karts-playlist-posts-live-v1";
+      const LAST_KEY = "karts-playlist-last-live-v1";
+      const CACHE_KEY = "karts-playlist-cover-cache-v1";
+      const LIKED_KEY = "karts-playlist-liked-live-v1";
+      const CLIENT_KEY = "karts-playlist-client-live-v1";
+      const API_ON = location.protocol === "http:" || location.protocol === "https:";
+
+      const schools = ["영상원", "음악원", "연극원", "무용원", "미술원", "전통예술원"];
+      const places = ["학교 가는 중", "집 가는 중", "작업하는 중", "과제하는 중", "촬영하는 중", "편집하는 중", "밥 먹는 중", "쉬는 중", "기타"];
+      const playlistTags = [
+        ["등교 플리", ["학교 가는 중"]],
+        ["하교 플리", ["집 가는 중"]],
+        ["작업 플리", ["작업하는 중", "촬영하는 중"]],
+        ["과제 플리", ["과제하는 중"]],
+        ["편집 플리", ["편집하는 중"]],
+        ["휴식 플리", ["밥 먹는 중", "쉬는 중"]]
+      ];
+
+      const pages = Array.from(document.querySelectorAll(".page"));
+      const titleInput = document.getElementById("titleInput");
+      const artistInput = document.getElementById("artistInput");
+      const previewCover = document.getElementById("previewCover");
+      const submitButton = document.getElementById("submitButton");
+      const otherPlaceField = document.getElementById("otherPlaceField");
+      const otherPlaceInput = document.getElementById("otherPlaceInput");
+      const sharedCard = document.getElementById("sharedCard");
+      const recentTrack = document.getElementById("recentTrack");
+      const activeRankList = document.getElementById("activeRankList");
+      const playlistTagsEl = document.getElementById("playlistTags");
+      const playlistResults = document.getElementById("playlistResults");
+      const playlistTitle = document.getElementById("playlistTitle");
+      const allPlaylistButton = document.getElementById("allPlaylistButton");
+      const archiveScroll = document.getElementById("archiveScroll");
+      const browseScroll = document.getElementById("browseScroll");
+      const playlistScroll = document.getElementById("playlistScroll");
+      const toast = document.getElementById("toast");
+
+      let coverCache = readJson(CACHE_KEY, {});
+      let posts = [];
+      let likedIds = new Set(readJson(LIKED_KEY, []));
+      let clientId = getClientId();
+      let lastId = localStorage.getItem(LAST_KEY) || "";
+      let currentCover = "";
+      let currentTrack = null;
+      let coverTimer = null;
+      let activePlaylistTag = "한예종 전체 음악";
+
+      setVh();
+      window.addEventListener("resize", setVh);
+
+      document.querySelectorAll("[data-go]").forEach((button) => {
+        button.addEventListener("click", () => goTo(button.dataset.go));
+      });
+
+      allPlaylistButton.addEventListener("click", () => {
+        activePlaylistTag = "한예종 전체 음악";
+        goTo("playlist");
+      });
+
+      document.querySelectorAll("[data-chip-group]").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          const chip = event.target.closest(".chip");
+          if (!chip) return;
+          group.querySelectorAll(".chip").forEach((item) => item.classList.remove("selected"));
+          chip.classList.add("selected");
+          if (group.dataset.chipGroup === "place") {
+            const isOther = chip.hasAttribute("data-other-place");
+            otherPlaceField.classList.toggle("show", isOther);
+            if (isOther) {
+              otherPlaceInput.focus();
+            }
+          }
+        });
+      });
+
+      document.querySelectorAll("[data-scroll-to]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".tab-button").forEach((tab) => tab.classList.remove("active"));
+          button.classList.add("active");
+          document.getElementById(button.dataset.scrollTo).scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
+      titleInput.addEventListener("input", updatePreviewSoon);
+      artistInput.addEventListener("input", updatePreviewSoon);
+
+      document.getElementById("songForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submitButton.disabled = true;
+        submitButton.textContent = "공식 곡 확인 중...";
+
+        const title = titleInput.value.trim() || "Untitled";
+        const artist = artistInput.value.trim() || "Unknown Artist";
+        const officialTrack = currentTrack || (await fetchOfficialTrack(title, artist));
+
+        if (!officialTrack) {
+          submitButton.disabled = false;
+          submitButton.textContent = "등록하기";
+          showToast("공식 등록곡을 찾지 못했어요");
+          return;
+        }
+
+        const postDraft = {
+          title: officialTrack.title,
+          artist: officialTrack.artist,
+          school: selectedChip("school") || "영상원",
+          place: selectedPlace(),
+          cover: normalizeArtworkUrl(officialTrack.cover)
+        };
+
+        try {
+          const post = await createPost(postDraft);
+          lastId = post.id;
+          renderAll();
+          submitButton.disabled = false;
+          submitButton.textContent = "등록하기";
+          goTo("archive");
+          showToast("플레이리스트에 담겼어요");
+        } catch {
+          submitButton.disabled = false;
+          submitButton.textContent = "등록하기";
+          showToast("저장 서버 연결을 확인해주세요");
+        }
+      });
+
+      function setVh() {
+        document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
+      }
+
+      function goTo(name) {
+        pages.forEach((page) => page.classList.toggle("active", page.dataset.page === name));
+        if (name === "archive") {
+          requestAnimationFrame(() => archiveScroll.scrollTo({ top: 0, behavior: "smooth" }));
+        }
+        if (name === "browse") {
+          renderBrowse();
+          requestAnimationFrame(() => browseScroll.scrollTo({ top: 0, behavior: "smooth" }));
+        }
+        if (name === "playlist") {
+          renderPlaylistPage();
+          requestAnimationFrame(() => playlistScroll.scrollTo({ top: 0, behavior: "smooth" }));
+        }
+      }
+
+      function migratePosts(items) {
+        return items.map((post, index) => ({
+          ...post,
+          likes: Number.isFinite(post.likes) ? post.likes : 1,
+          school: post.school || schools[index % schools.length],
+          place: normalizeLegacyPlace(post.place || places[index % places.length]),
+          cover: normalizeArtworkUrl(post.cover || ""),
+          createdAt: post.createdAt || Date.now() - index * 90000
+        }));
+      }
+
+      function normalizeLegacyPlace(place) {
+        const clean = normalizeTag(place);
+        const legacyMap = {
+          "작업실": "작업하는 중",
+          "등하교길": "학교 가는 중",
+          "도서관": "과제하는 중",
+          "식당": "밥 먹는 중",
+          "연습실": "작업하는 중",
+          "카페": "쉬는 중",
+          "편집실": "편집하는 중",
+          "과방": "쉬는 중",
+          "집": "집 가는 중"
+        };
+        return legacyMap[clean] || clean || "기타";
+      }
+
+      function readJson(key, fallback) {
+        try {
+          const value = JSON.parse(localStorage.getItem(key) || "null");
+          return value || fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function getClientId() {
+        let value = localStorage.getItem(CLIENT_KEY);
+        if (!value) {
+          value = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+          localStorage.setItem(CLIENT_KEY, value);
+        }
+        return value;
+      }
+
+      async function loadPosts() {
+        if (API_ON) {
+          try {
+            const response = await fetch("/api/posts", { cache: "no-store" });
+            if (response.ok) {
+              const data = await response.json();
+              posts = migratePosts(data.posts || []);
+              renderAll();
+              return;
+            }
+          } catch {
+            showToast("공동 저장 서버 연결을 확인해주세요");
+          }
+        }
+        posts = migratePosts(readJson(STORAGE_KEY, []));
+        renderAll();
+      }
+
+      async function createPost(postDraft) {
+        if (API_ON) {
+          const response = await fetch("/api/posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(postDraft)
+          });
+          if (!response.ok) throw new Error("post_failed");
+          const data = await response.json();
+          posts = migratePosts(data.posts || []);
+          localStorage.setItem(LAST_KEY, data.post.id);
+          return data.post;
+        }
+
+        const post = {
+          ...postDraft,
+          id: `post-${Date.now()}`,
+          likes: 1,
+          createdAt: Date.now()
+        };
+        posts.unshift(post);
+        savePosts();
+        return post;
+      }
+
+      function savePosts() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+        localStorage.setItem(LAST_KEY, lastId);
+        localStorage.setItem(LIKED_KEY, JSON.stringify([...likedIds]));
+      }
+
+      function selectedChip(groupName) {
+        return document.querySelector(`[data-chip-group="${groupName}"] .chip.selected`)?.textContent.trim();
+      }
+
+      function normalizeTag(value) {
+        return String(value || "")
+          .trim()
+          .replace(/^#+\s*/, "");
+      }
+
+      function selectedPlace() {
+        const selected = selectedChip("place") || "# 학교 가는 중";
+        if (selected.includes("기타")) {
+          return normalizeTag(otherPlaceInput.value) || "기타";
+        }
+        return normalizeTag(selected);
+      }
+
+      function updatePreviewSoon() {
+        const title = titleInput.value.trim();
+        const artist = artistInput.value.trim();
+        currentCover = "";
+        currentTrack = null;
+        renderCover(previewCover, "");
+        clearTimeout(coverTimer);
+        coverTimer = setTimeout(async () => {
+          if (!title || !artist) return;
+          const track = await fetchOfficialTrack(title, artist);
+          currentTrack = track;
+          currentCover = track?.cover || "";
+          renderCover(previewCover, currentCover);
+        }, 520);
+      }
+
+      async function fetchOfficialTrack(title, artist) {
+        const key = `${title}__${artist}`.toLowerCase();
+        if (coverCache[key] && typeof coverCache[key] === "object") {
+          coverCache[key].cover = normalizeArtworkUrl(coverCache[key].cover);
+          return coverCache[key];
+        }
+
+        const queries = [
+          `${artist} ${title}`,
+          `${title} ${artist}`,
+          title
+        ];
+
+        for (const query of queries) {
+          try {
+            const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1&country=KR`;
+            const response = await fetch(url);
+            if (!response.ok) continue;
+            const data = await response.json();
+            const result = data.results?.[0];
+            const artwork = result?.artworkUrl100;
+            if (result?.trackName && result?.artistName && artwork) {
+              const track = {
+                title: result.trackName,
+                artist: result.artistName,
+                cover: normalizeArtworkUrl(artwork)
+              };
+              coverCache[key] = track;
+              localStorage.setItem(CACHE_KEY, JSON.stringify(coverCache));
+              return track;
+            }
+          } catch {
+            // Keep the UI usable if the phone is offline or the API is unavailable.
+          }
+        }
+        return null;
+      }
+
+      function normalizeArtworkUrl(url) {
+        if (!url) return "";
+        const clean = String(url).trim();
+        if (/\/600x$/i.test(clean)) return clean.replace(/\/600x$/i, "/600x600bb.jpg");
+        if (/\/\d+x\d+bb\.(jpg|jpeg|png|webp)$/i.test(clean)) {
+          return clean.replace(/\/\d+x\d+bb\.(jpg|jpeg|png|webp)$/i, "/600x600bb.jpg");
+        }
+        if (/\/\d+x\d+\.(jpg|jpeg|png|webp)$/i.test(clean)) {
+          return clean.replace(/\/\d+x\d+\.(jpg|jpeg|png|webp)$/i, "/600x600bb.jpg");
+        }
+        if (/\/\d+x\d+bb$/i.test(clean)) {
+          return `${clean.replace(/\/\d+x\d+bb$/i, "")}/600x600bb.jpg`;
+        }
+        return clean;
+      }
+
+      function renderCover(target, cover) {
+        target.innerHTML = cover ? `<img src="${cover}" alt="" />` : "";
+      }
+
+      function renderAll() {
+        renderShared();
+        renderRecent();
+        renderBrowse();
+      }
+
+      function renderShared() {
+        const post = posts.find((item) => item.id === lastId) || posts[0];
+        if (!post) {
+          sharedCard.innerHTML = `<div class="empty-note">아직 등록된 음악이 없어요.</div>`;
+          return;
+        }
+        sharedCard.innerHTML = `
+          <div class="album-cover">${post.cover ? `<img src="${post.cover}" alt="" />` : ""}</div>
+          <div>
+            <h2>${escapeHtml(post.title)}</h2>
+            <p>${escapeHtml(post.artist)} · ${escapeHtml(post.school)}</p>
+          </div>
+          <div class="tag-row">
+            <span class="tag">#${escapeHtml(post.place)}</span>
+            ${heartButton(post, true)}
+          </div>
+        `;
+        bindHearts(sharedCard);
+      }
+
+      function renderRecent() {
+        const recent = [...posts].sort((a, b) => b.createdAt - a.createdAt).slice(0, 12);
+        if (!recent.length) {
+          recentTrack.innerHTML = `<div class="empty-note">첫 번째 음악을 남겨주세요.</div>`;
+          return;
+        }
+        recentTrack.innerHTML = recent.map((post) => `
+          <article class="recent-card">
+            ${post.cover ? `<img src="${post.cover}" alt="" />` : ""}
+            <div class="recent-info">
+              <strong>${escapeHtml(post.title)}</strong>
+              <span>${escapeHtml(post.artist)} · ${escapeHtml(post.school)} · #${escapeHtml(post.place)}</span>
+              <div class="tag-row">
+                ${heartButton(post, true)}
+              </div>
+            </div>
+          </article>
+        `).join("");
+        bindHearts(recentTrack);
+      }
+
+      function renderBrowse() {
+        renderRankList(activeRankList, aggregateSongs("likes", 10));
+        renderPlaylistTags();
+      }
+
+      function aggregateSongs(metric, limit = 30) {
+        const map = new Map();
+        posts.forEach((post) => {
+          const key = songKey(post);
+          if (!map.has(key)) {
+            map.set(key, {
+              key,
+              title: post.title,
+              artist: post.artist,
+              school: post.school,
+              place: post.place,
+              cover: post.cover,
+              likes: 0,
+              createdAt: post.createdAt,
+              post
+            });
+          }
+          const item = map.get(key);
+          item.likes += post.likes || 0;
+          if (post.createdAt > item.createdAt) {
+            item.createdAt = post.createdAt;
+            item.school = post.school;
+            item.place = post.place;
+            item.cover = post.cover || item.cover;
+            item.post = post;
+          }
+        });
+        return [...map.values()]
+          .sort((a, b) => b[metric] - a[metric] || b.createdAt - a.createdAt)
+          .slice(0, limit);
+      }
+
+      function renderRankList(target, ranked) {
+        if (!ranked.length) {
+          target.innerHTML = `<div class="empty-note">하트가 쌓이면 순위가 만들어져요.</div>`;
+          return;
+        }
+        target.innerHTML = ranked.map((item, index) => `
+          <article class="chart-row">
+            <div class="rank">${index + 1}</div>
+            <div class="mini-cover">${item.cover ? `<img src="${item.cover}" alt="" />` : ""}</div>
+            <div class="chart-title">
+              <h3>${escapeHtml(item.title)}</h3>
+              <p>${escapeHtml(item.artist)} · ${escapeHtml(item.school)} · #${escapeHtml(item.place)}</p>
+            </div>
+            <div class="likes">
+              <strong>${item.likes}</strong>
+              ${heartButton(item.post, false)}
+            </div>
+          </article>
+        `).join("");
+        bindHearts(target);
+      }
+
+      function renderPlaylistTags() {
+        playlistTagsEl.innerHTML = `
+          <img src="karts-playlist-assets/playlist-menu.png" alt="" />
+        ` + playlistTags.map(([label], index) => `
+          <button class="playlist-tag" type="button" data-index="${index}" data-playlist="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"></button>
+        `).join("");
+        playlistTagsEl.querySelectorAll(".playlist-tag").forEach((button) => {
+          button.addEventListener("click", () => {
+            activePlaylistTag = button.dataset.playlist;
+            goTo("playlist");
+          });
+        });
+      }
+
+      function renderPlaylistPage() {
+        playlistTitle.textContent = activePlaylistTag;
+        const matchedTag = playlistTags.find(([label]) => label === activePlaylistTag);
+        const sourceTags = matchedTag?.[1] || null;
+        const filtered = posts
+          .filter((post) => !sourceTags || sourceTags.includes(post.place))
+          .sort((a, b) => b.createdAt - a.createdAt);
+        if (!filtered.length) {
+          playlistResults.innerHTML = `<div class="empty-note">아직 이 플리에 담긴 음악이 없어요.</div>`;
+          return;
+        }
+        playlistResults.innerHTML = filtered.map((post) => `
+          <article class="chart-row playlist-row">
+            <div class="mini-cover">${post.cover ? `<img src="${post.cover}" alt="" />` : ""}</div>
+            <div class="chart-title">
+              <h3>${escapeHtml(post.title)}</h3>
+              <p>${escapeHtml(post.artist)} · ${escapeHtml(post.school)} · #${escapeHtml(post.place)}</p>
+            </div>
+            <div class="likes">
+              <strong>${post.likes}</strong>
+              ${heartButton(post, false)}
+            </div>
+          </article>
+        `).join("");
+        bindHearts(playlistResults);
+      }
+
+      function bindHearts(root) {
+        root.querySelectorAll(".heart-button").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const post = posts.find((item) => item.id === button.dataset.id);
+            if (!post) return;
+            if (likedIds.has(post.id)) {
+              showToast("이미 하트를 눌렀어요");
+              return;
+            }
+            button.disabled = true;
+            try {
+              const liked = await likePost(post.id);
+              button.classList.remove("bump");
+              void button.offsetWidth;
+              button.classList.add("bump");
+              renderAll();
+              showToast(liked ? "하트가 순위에 반영됐어요" : "이미 하트를 눌렀어요");
+            } catch {
+              showToast("하트 저장 서버를 확인해주세요");
+            } finally {
+              button.disabled = false;
+            }
+          });
+        });
+      }
+
+      async function likePost(postId) {
+        if (API_ON) {
+          const response = await fetch("/api/like", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postId, clientId })
+          });
+          if (!response.ok) throw new Error("like_failed");
+          const data = await response.json();
+          posts = migratePosts(data.posts || posts);
+          if (data.liked) {
+            likedIds.add(postId);
+            localStorage.setItem(LIKED_KEY, JSON.stringify([...likedIds]));
+          }
+          return Boolean(data.liked);
+        }
+
+        const post = posts.find((item) => item.id === postId);
+        if (!post) return false;
+        post.likes += 1;
+        likedIds.add(postId);
+        savePosts();
+        return true;
+      }
+
+      function heartButton(post, showCount) {
+        const liked = likedIds.has(post.id);
+        const label = showCount ? `❤️ ${post.likes}` : "❤️";
+        return `<button class="heart-button ${liked ? "liked" : ""}" type="button" data-id="${post.id}" aria-pressed="${liked}">${label}</button>`;
+      }
+
+      function songKey(post) {
+        return `${post.title}__${post.artist}`.trim().toLowerCase();
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.classList.remove("show"), 1300);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      updatePreviewSoon();
+      renderAll();
+      loadPosts();
+      if (API_ON) {
+        setInterval(loadPosts, 5000);
+      }
+    </script>
+  </body>
+</html>
