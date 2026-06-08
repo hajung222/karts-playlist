@@ -1456,7 +1456,7 @@
         renderCover(previewCover, "");
         clearTimeout(coverTimer);
         coverTimer = setTimeout(async () => {
-          if (!title || !artist) return;
+          if (!title) return;
           const track = await fetchOfficialTrack(title, artist);
           currentTrack = track;
           currentCover = track?.cover || "";
@@ -1470,7 +1470,23 @@
           coverCache[key].cover = normalizeArtworkUrl(coverCache[key].cover);
           return coverCache[key];
         }
-
+if (location.protocol !== "file:") {
+  try {
+    const apiUrl = `/api/track?title=${encodeURIComponent(safeTitle)}&artist=${encodeURIComponent(safeArtist)}`;
+    const apiResponse = await fetch(apiUrl);
+    if (apiResponse.ok) {
+      const apiData = await apiResponse.json();
+      const track = apiData.track;
+      if (track?.title && track?.artist && track?.cover) {
+        track.cover = normalizeArtworkUrl(track.cover);
+        coverCache[key] = track;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(coverCache));
+        return track;
+      }
+    }
+  } catch {
+  }
+}
         const queries = [
           `${artist} ${title}`,
           `${title} ${artist}`,
